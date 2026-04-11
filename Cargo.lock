@@ -198,7 +198,7 @@ dependencies = [
  "axum",
  "chrono",
  "convergio-db",
- "convergio-types",
+ "convergio-types 0.1.6",
  "rusqlite",
  "serde",
  "serde_json",
@@ -214,7 +214,7 @@ version = "0.1.4"
 source = "git+https://github.com/Roberdan/convergio-sdk?tag=convergio-sdk-v0.1.4#2f13cdc9ded028e32f39be687e23a9b093001b13"
 dependencies = [
  "chrono",
- "convergio-types",
+ "convergio-types 0.1.4",
  "r2d2",
  "r2d2_sqlite",
  "rusqlite",
@@ -227,6 +227,19 @@ dependencies = [
 name = "convergio-types"
 version = "0.1.4"
 source = "git+https://github.com/Roberdan/convergio-sdk?tag=convergio-sdk-v0.1.4#2f13cdc9ded028e32f39be687e23a9b093001b13"
+dependencies = [
+ "axum",
+ "chrono",
+ "dirs",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "convergio-types"
+version = "0.1.6"
+source = "git+https://github.com/Roberdan/convergio-sdk?tag=convergio-sdk-v0.1.6#175aaec0da0e1fe3f6d1384ca0c6d259c12db268"
 dependencies = [
  "axum",
  "chrono",
