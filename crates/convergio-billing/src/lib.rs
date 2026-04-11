@@ -1,21 +1,20 @@
-//! # convergio-billing
+//! convergio-billing — Billing, metering & inter-org economics.
 //!
-//! Billing, metering, inter-org economics, rate cards, invoices, cost alerts
-//!
-//! Part of the [Convergio](https://github.com/Roberdan/convergio) ecosystem.
+//! Tracks every cost-generating action at per-agent/task/org granularity.
+//! Budget hierarchy: platform -> org -> agent. Inter-org billing via rate cards.
+//! Tamper-evident audit trail with hash chain.
 
+pub mod alerts;
+pub mod audit;
+pub mod budget;
+pub mod ext;
+pub mod invoices;
+pub mod mcp_defs;
+pub mod metering;
+pub mod rates;
 pub mod routes;
+pub mod schema;
+pub mod settlement;
+pub mod types;
 
-// Uncomment as needed:
-// pub mod ext;
-// pub mod mcp_defs;
-// pub mod schema;
-// pub mod types;
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert!(true);
-    }
-}
+pub use ext::BillingExtension;
