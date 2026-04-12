@@ -39,6 +39,17 @@ graph LR
 | SBOM (CycloneDX) | `cargo cyclonedx` | On release |
 | Auto-release | release-please + PAT | Fully automatic |
 
+## Security
+
+All billing endpoints enforce input validation:
+- Monetary values must be finite and non-negative (rejects NaN, Infinity, negatives)
+- Entity/org identifiers are length-constrained (1-256 chars)
+- Error responses are sanitized (no internal details leaked)
+- All SQL queries use parameterized placeholders (no injection risk)
+- No unsafe code blocks
+
+See [ADR-002](docs/adr/002-audit-security-fixes.md) for the full audit report.
+
 ## Usage
 
 ```toml

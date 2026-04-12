@@ -52,7 +52,11 @@ pub fn list_invoices(conn: &Connection, org_id: &str) -> rusqlite::Result<Vec<In
             period_end: row.get(3)?,
             items,
             total_usd: row.get(5)?,
-            created_at: chrono::Utc::now(),
+            created_at: chrono::DateTime::parse_from_rfc3339(
+                &row.get::<_, String>(6).unwrap_or_default(),
+            )
+            .map(|dt| dt.with_timezone(&chrono::Utc))
+            .unwrap_or_else(|_| chrono::Utc::now()),
         })
     })?;
     rows.collect()

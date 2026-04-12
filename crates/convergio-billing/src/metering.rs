@@ -7,8 +7,18 @@ use rusqlite::{params, Connection};
 
 use crate::types::{ActionCategory, UsageRecord};
 
-/// Record a usage event.
+/// Record a usage event. Rejects invalid (negative, NaN, Infinity) cost/quantity.
 pub fn record_usage(conn: &Connection, record: &UsageRecord) -> rusqlite::Result<i64> {
+    if !record.quantity.is_finite() || record.quantity < 0.0 {
+        return Err(rusqlite::Error::InvalidParameterName(
+            "quantity must be finite and non-negative".into(),
+        ));
+    }
+    if !record.cost_usd.is_finite() || record.cost_usd < 0.0 {
+        return Err(rusqlite::Error::InvalidParameterName(
+            "cost_usd must be finite and non-negative".into(),
+        ));
+    }
     conn.execute(
         "INSERT INTO billing_usage
          (org_id, agent_id, task_id, category, quantity, unit, cost_usd, model, created_at)
@@ -83,7 +93,9 @@ pub fn usage_for_period(
             unit: row.get(6)?,
             cost_usd: row.get(7)?,
             model: row.get(8)?,
-            created_at: chrono::Utc::now(), // DB stores text, parse later
+            created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(9)?)
+                .map(|dt| dt.with_timezone(&chrono::Utc))
+                .unwrap_or_else(|_| chrono::Utc::now()),
         })
     })?;
     rows.collect()
@@ -155,5 +167,41 @@ mod tests {
         assert_eq!(groups.len(), 2);
         // api_call should have higher total (20.0)
         assert_eq!(groups[0].0, "api_call");
+    }
+
+    #[test]
+    fn reject_negative_quantity() {
+        let conn = setup();
+        let rec = UsageRecord {
+            id: None,
+            org_id: "org".into(),
+            agent_id: None,
+            task_id: None,
+            category: ActionCategory::ApiCall,
+            quantity: -1.0,
+            unit: "unit".into(),
+            cost_usd: 0.0,
+            model: None,
+            created_at: Utc::now(),
+        };
+        assert!(record_usage(&conn, &rec).is_err());
+    }
+
+    #[test]
+    fn reject_nan_cost() {
+        let conn = setup();
+        let rec = UsageRecord {
+            id: None,
+            org_id: "org".into(),
+            agent_id: None,
+            task_id: None,
+            category: ActionCategory::ApiCall,
+            quantity: 1.0,
+            unit: "unit".into(),
+            cost_usd: f64::NAN,
+            model: None,
+            created_at: Utc::now(),
+        };
+        assert!(record_usage(&conn, &rec).is_err());
     }
 }
