@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/Roberdan/convergio-billing/compare/convergio-billing-v0.1.1...convergio-billing-v0.1.2) (2026-04-12)
+
+
+### Bug Fixes
+
+* security audit - input validation, bug fixes, error sanitization ([#6](https://github.com/Roberdan/convergio-billing/issues/6)) ([edbbdb3](https://github.com/Roberdan/convergio-billing/commit/edbbdb37e7db7c64d0c93c390ed1209c297f34a0))
+
 ## [0.1.1](https://github.com/Roberdan/convergio-billing/compare/convergio-billing-v0.1.0...convergio-billing-v0.1.1) (2026-04-11)
 
 
