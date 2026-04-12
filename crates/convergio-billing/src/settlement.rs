@@ -8,7 +8,13 @@ use rusqlite::{params, Connection};
 use crate::types::SettlementRecord;
 
 /// Record a settlement between two orgs.
+/// Rejects negative, NaN, or Infinity amounts.
 pub fn record_settlement(conn: &Connection, record: &SettlementRecord) -> rusqlite::Result<i64> {
+    if !record.amount_usd.is_finite() || record.amount_usd < 0.0 {
+        return Err(rusqlite::Error::InvalidParameterName(
+            "amount_usd must be finite and non-negative".into(),
+        ));
+    }
     conn.execute(
         "INSERT INTO billing_settlements
          (from_org, to_org, amount_usd, capability, reference_task)
@@ -64,7 +70,11 @@ pub fn list_settlements(
             amount_usd: row.get(3)?,
             capability: row.get(4)?,
             reference_task: row.get(5)?,
-            created_at: chrono::Utc::now(),
+            created_at: chrono::DateTime::parse_from_rfc3339(
+                &row.get::<_, String>(6).unwrap_or_default(),
+            )
+            .map(|dt| dt.with_timezone(&chrono::Utc))
+            .unwrap_or_else(|_| chrono::Utc::now()),
         })
     })?;
     rows.collect()

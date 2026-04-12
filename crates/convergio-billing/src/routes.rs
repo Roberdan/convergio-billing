@@ -61,6 +61,16 @@ async fn handle_usage(
     State(state): State<Arc<BillingState>>,
     Query(params): Query<UsageQuery>,
 ) -> Json<UsageResponse> {
+    // Reject empty or excessively long org_id
+    if params.org_id.is_empty() || params.org_id.len() > 256 {
+        return Json(UsageResponse {
+            org_id: params.org_id,
+            daily_cost: 0.0,
+            monthly_cost: 0.0,
+            categories: vec![],
+        });
+    }
+
     let conn = match state.pool.get() {
         Ok(c) => c,
         Err(_) => {
@@ -152,11 +162,28 @@ async fn handle_alerts(
     State(state): State<Arc<BillingState>>,
     Json(body): Json<AlertRequest>,
 ) -> Json<serde_json::Value> {
+    // Input validation: reject negative, NaN, or infinite budget limits
+    if !body.daily_limit_usd.is_finite()
+        || !body.monthly_limit_usd.is_finite()
+        || body.daily_limit_usd < 0.0
+        || body.monthly_limit_usd < 0.0
+    {
+        return Json(serde_json::json!({
+            "error": {"code": "INVALID_INPUT", "message": "budget limits must be finite non-negative numbers"}
+        }));
+    }
+    // Reject empty or excessively long entity_id
+    if body.entity_id.is_empty() || body.entity_id.len() > 256 {
+        return Json(serde_json::json!({
+            "error": {"code": "INVALID_INPUT", "message": "entity_id must be 1-256 characters"}
+        }));
+    }
+
     let conn = match state.pool.get() {
         Ok(c) => c,
-        Err(e) => {
+        Err(_) => {
             return Json(serde_json::json!({
-                "error": {"code": "POOL_ERROR", "message": e.to_string()}
+                "error": {"code": "POOL_ERROR", "message": "service unavailable"}
             }))
         }
     };
@@ -175,9 +202,9 @@ async fn handle_alerts(
         auto_pause: body.auto_pause,
     };
 
-    if let Err(e) = crate::budget::set_budget(&conn, &config) {
+    if crate::budget::set_budget(&conn, &config).is_err() {
         return Json(serde_json::json!({
-            "error": {"code": "DB_ERROR", "message": e.to_string()}
+            "error": {"code": "DB_ERROR", "message": "failed to set budget"}
         }));
     }
 
@@ -190,11 +217,15 @@ async fn handle_alerts(
     }))
 }
 
-/// Aggregated cost summary: total spend, active plans, and plan count.
+/// Aggregated cost summary: total spend today and overall.
 async fn handle_cost_summary(State(state): State<Arc<BillingState>>) -> Json<serde_json::Value> {
     let conn = match state.pool.get() {
         Ok(c) => c,
-        Err(e) => return Json(serde_json::json!({"error": e.to_string()})),
+        Err(_) => {
+            return Json(serde_json::json!({
+                "error": {"code": "POOL_ERROR", "message": "service unavailable"}
+            }))
+        }
     };
     let total_cost: f64 = conn
         .query_row(
@@ -206,17 +237,17 @@ async fn handle_cost_summary(State(state): State<Arc<BillingState>>) -> Json<ser
     let today_cost: f64 = conn
         .query_row(
             "SELECT COALESCE(SUM(cost_usd), 0) FROM billing_usage \
-             WHERE recorded_at >= date('now')",
+             WHERE date(created_at) >= date('now')",
             [],
             |r| r.get(0),
         )
         .unwrap_or(0.0);
-    let plan_count: i64 = conn
-        .query_row("SELECT count(*) FROM plans", [], |r| r.get(0))
+    let budget_count: i64 = conn
+        .query_row("SELECT count(*) FROM billing_budgets", [], |r| r.get(0))
         .unwrap_or(0);
-    let active_plans: i64 = conn
+    let active_alerts: i64 = conn
         .query_row(
-            "SELECT count(*) FROM plans WHERE status IN ('active','in_progress','todo')",
+            "SELECT count(*) FROM billing_budgets WHERE paused = 1",
             [],
             |r| r.get(0),
         )
@@ -224,7 +255,7 @@ async fn handle_cost_summary(State(state): State<Arc<BillingState>>) -> Json<ser
     Json(serde_json::json!({
         "total_cost_usd": total_cost,
         "today_cost_usd": today_cost,
-        "active_plans": active_plans,
-        "total_plans": plan_count,
+        "paused_entities": active_alerts,
+        "total_budgets": budget_count,
     }))
 }

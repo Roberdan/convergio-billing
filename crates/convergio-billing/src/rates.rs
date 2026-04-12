@@ -8,7 +8,13 @@ use rusqlite::{params, Connection};
 use crate::types::RateCard;
 
 /// Set or update a rate card for an org's capability.
+/// Rejects negative, NaN, or Infinity price values.
 pub fn set_rate(conn: &Connection, rate: &RateCard) -> rusqlite::Result<()> {
+    if !rate.price_per_unit.is_finite() || rate.price_per_unit < 0.0 {
+        return Err(rusqlite::Error::InvalidParameterName(
+            "price_per_unit must be finite and non-negative".into(),
+        ));
+    }
     conn.execute(
         "INSERT OR REPLACE INTO billing_rate_cards
          (org_id, capability, price_per_unit, unit, effective_from)
@@ -145,5 +151,39 @@ mod tests {
         let conn = setup();
         let cost = calculate_delegation_cost(&conn, "unknown", "cap", 1.0).unwrap();
         assert_eq!(cost, 0.0);
+    }
+
+    #[test]
+    fn reject_negative_price() {
+        let conn = setup();
+        let result = set_rate(
+            &conn,
+            &RateCard {
+                id: None,
+                org_id: "org".into(),
+                capability: "cap".into(),
+                price_per_unit: -1.0,
+                unit: "unit".into(),
+                effective_from: "2026-01-01".into(),
+            },
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn reject_nan_price() {
+        let conn = setup();
+        let result = set_rate(
+            &conn,
+            &RateCard {
+                id: None,
+                org_id: "org".into(),
+                capability: "cap".into(),
+                price_per_unit: f64::NAN,
+                unit: "unit".into(),
+                effective_from: "2026-01-01".into(),
+            },
+        );
+        assert!(result.is_err());
     }
 }

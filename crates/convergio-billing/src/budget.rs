@@ -9,7 +9,18 @@ use crate::metering;
 use crate::types::{BudgetConfig, BudgetScope, BudgetStatus};
 
 /// Set or update a budget configuration.
+/// Rejects negative, NaN, or Infinity limit values.
 pub fn set_budget(conn: &Connection, config: &BudgetConfig) -> rusqlite::Result<()> {
+    if !config.daily_limit_usd.is_finite() || config.daily_limit_usd < 0.0 {
+        return Err(rusqlite::Error::InvalidParameterName(
+            "daily_limit_usd must be finite and non-negative".into(),
+        ));
+    }
+    if !config.monthly_limit_usd.is_finite() || config.monthly_limit_usd < 0.0 {
+        return Err(rusqlite::Error::InvalidParameterName(
+            "monthly_limit_usd must be finite and non-negative".into(),
+        ));
+    }
     let scope_str = match config.scope {
         BudgetScope::Platform => "platform",
         BudgetScope::Org => "org",
@@ -196,5 +207,31 @@ mod tests {
     fn missing_entity_returns_none() {
         let conn = setup();
         assert!(get_status(&conn, "nonexistent").unwrap().is_none());
+    }
+
+    #[test]
+    fn reject_negative_budget_limits() {
+        let conn = setup();
+        let config = BudgetConfig {
+            scope: BudgetScope::Org,
+            entity_id: "org".into(),
+            daily_limit_usd: -10.0,
+            monthly_limit_usd: 100.0,
+            auto_pause: false,
+        };
+        assert!(set_budget(&conn, &config).is_err());
+    }
+
+    #[test]
+    fn reject_nan_budget_limits() {
+        let conn = setup();
+        let config = BudgetConfig {
+            scope: BudgetScope::Org,
+            entity_id: "org".into(),
+            daily_limit_usd: 100.0,
+            monthly_limit_usd: f64::NAN,
+            auto_pause: false,
+        };
+        assert!(set_budget(&conn, &config).is_err());
     }
 }
