@@ -114,6 +114,9 @@ async fn handle_invoices(
     State(state): State<Arc<BillingState>>,
     Query(params): Query<InvoicesQuery>,
 ) -> Json<Vec<Invoice>> {
+    if params.org_id.is_empty() || params.org_id.len() > 256 {
+        return Json(vec![]);
+    }
     let conn = match state.pool.get() {
         Ok(c) => c,
         Err(_) => return Json(vec![]),

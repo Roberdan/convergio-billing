@@ -79,12 +79,18 @@ pub fn get_rate(
 
 /// Calculate cost for an inter-org delegation based on rate cards.
 /// Returns the cost in USD, or 0 if no rate card exists.
+/// Rejects negative, NaN, or Infinity quantity values.
 pub fn calculate_delegation_cost(
     conn: &Connection,
     provider_org: &str,
     capability: &str,
     quantity: f64,
 ) -> rusqlite::Result<f64> {
+    if !quantity.is_finite() || quantity < 0.0 {
+        return Err(rusqlite::Error::InvalidParameterName(
+            "quantity must be finite and non-negative".into(),
+        ));
+    }
     match get_rate(conn, provider_org, capability)? {
         Some(rate) => Ok(rate.price_per_unit * quantity),
         None => Ok(0.0),
@@ -185,5 +191,17 @@ mod tests {
             },
         );
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn reject_negative_delegation_quantity() {
+        let conn = setup();
+        assert!(calculate_delegation_cost(&conn, "org", "cap", -1.0).is_err());
+    }
+
+    #[test]
+    fn reject_nan_delegation_quantity() {
+        let conn = setup();
+        assert!(calculate_delegation_cost(&conn, "org", "cap", f64::NAN).is_err());
     }
 }
