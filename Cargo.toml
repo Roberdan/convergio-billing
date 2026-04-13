@@ -5,7 +5,7 @@ members = ["crates/convergio-billing"]
 [workspace.package]
 version = "0.1.4"
 edition = "2021"
-license = "LicenseRef-Convergio-Community"
+license = "MIT"
 repository = "https://github.com/Roberdan/convergio-billing"
 
 [workspace.dependencies]
