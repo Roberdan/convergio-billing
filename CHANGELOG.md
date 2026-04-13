@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.3](https://github.com/Roberdan/convergio-billing/compare/v0.1.2...v0.1.3) (2026-04-13)
+
+
+### Bug Fixes
+
+* **release:** use vX.Y.Z tag format (remove component) ([55ecd8c](https://github.com/Roberdan/convergio-billing/commit/55ecd8c36303b20b2d429e31f3fbed2b3c9d92f0))
+* security audit - input validation, bug fixes, error sanitization ([#6](https://github.com/Roberdan/convergio-billing/issues/6)) ([edbbdb3](https://github.com/Roberdan/convergio-billing/commit/edbbdb37e7db7c64d0c93c390ed1209c297f34a0))
+
 ## [0.1.2](https://github.com/Roberdan/convergio-billing/compare/convergio-billing-v0.1.1...convergio-billing-v0.1.2) (2026-04-12)
 
 
