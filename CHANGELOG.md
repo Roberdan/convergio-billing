@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/Roberdan/convergio-billing/compare/v0.1.3...v0.1.4) (2026-04-13)
+
+
+### Bug Fixes
+
+* regenerate Cargo.lock after SDK bump ([#10](https://github.com/Roberdan/convergio-billing/issues/10)) ([270183c](https://github.com/Roberdan/convergio-billing/commit/270183c84d2966a42f4d165e294eb1c60468f473))
+
 ## [0.1.3](https://github.com/Roberdan/convergio-billing/compare/v0.1.2...v0.1.3) (2026-04-13)
 
 
