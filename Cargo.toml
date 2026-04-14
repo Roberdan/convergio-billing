@@ -10,8 +10,8 @@ repository = "https://github.com/Roberdan/convergio-billing"
 
 [workspace.dependencies]
 # SDK dependencies (crates.io)
-convergio-types = "0.1.6"
-convergio-db = "0.1.6"
+convergio-types = "0.1.10"
+convergio-db = "0.1.10"
 
 # Common deps — pin same versions as SDK for compatibility
 thiserror = "1"
