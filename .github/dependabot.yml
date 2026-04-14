@@ -13,6 +13,8 @@ updates:
           - "convergio-types"
           - "convergio-db"
     ignore:
+      - dependency-name: "rand"
+        update-types: ["version-update:semver-major"]
       # Stay aligned with SDK/monorepo versions — do NOT auto-bump major versions
       - dependency-name: "axum"
         update-types: ["version-update:semver-major"]
