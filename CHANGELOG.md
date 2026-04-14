@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.5](https://github.com/Roberdan/convergio-billing/compare/v0.1.4...v0.1.5) (2026-04-14)
+
+
+### Bug Fixes
+
+* pass CARGO_REGISTRY_TOKEN to release workflow ([7690e9a](https://github.com/Roberdan/convergio-billing/commit/7690e9a76970f32bf828fe956b3d92087780b86c))
+
 ## [0.1.4](https://github.com/Roberdan/convergio-billing/compare/v0.1.3...v0.1.4) (2026-04-13)
 
 
