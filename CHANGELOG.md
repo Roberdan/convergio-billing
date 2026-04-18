@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.6](https://github.com/Roberdan/convergio-billing/compare/v0.1.5...v0.1.6) (2026-04-18)
+
+
+### Bug Fixes
+
+* security and quality audit pass 2 ([5b677d8](https://github.com/Roberdan/convergio-billing/commit/5b677d82db0f6871c5f33bf23de25e6acb0e1991))
+
 ## [0.1.5](https://github.com/Roberdan/convergio-billing/compare/v0.1.4...v0.1.5) (2026-04-14)
 
 
