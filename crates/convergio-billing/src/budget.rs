@@ -116,20 +116,18 @@ fn spending_for_entity(
 ) -> rusqlite::Result<(f64, f64)> {
     match scope {
         BudgetScope::Agent => {
-            let d = metering::agent_cost_today(conn, entity_id).unwrap_or(0.0);
-            let m = conn
-                .query_row(
-                    "SELECT COALESCE(SUM(cost_usd), 0.0) FROM billing_usage
-                     WHERE agent_id = ?1 AND date(created_at) >= date('now','start of month')",
-                    params![entity_id],
-                    |r| r.get(0),
-                )
-                .unwrap_or(0.0);
+            let d = metering::agent_cost_today(conn, entity_id)?;
+            let m = conn.query_row(
+                "SELECT COALESCE(SUM(cost_usd), 0.0) FROM billing_usage
+                 WHERE agent_id = ?1 AND date(created_at) >= date('now','start of month')",
+                params![entity_id],
+                |r| r.get(0),
+            )?;
             Ok((d, m))
         }
         _ => {
-            let d = metering::org_cost_today(conn, entity_id).unwrap_or(0.0);
-            let m = metering::org_cost_month(conn, entity_id).unwrap_or(0.0);
+            let d = metering::org_cost_today(conn, entity_id)?;
+            let m = metering::org_cost_month(conn, entity_id)?;
             Ok((d, m))
         }
     }

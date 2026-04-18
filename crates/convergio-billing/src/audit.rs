@@ -10,6 +10,9 @@ use sha2::{Digest, Sha256};
 use crate::types::AuditEntry;
 
 /// Append an entry to the audit chain.
+///
+/// Uses IMMEDIATE transaction to prevent concurrent appends from reading
+/// the same prev_hash (race condition → chain fork).
 pub fn append(
     conn: &Connection,
     event_type: &str,
@@ -17,26 +20,38 @@ pub fn append(
     amount_usd: f64,
     details: &str,
 ) -> rusqlite::Result<AuditEntry> {
-    let prev_hash = get_last_hash(conn)?;
-    let hash = compute_hash(&prev_hash, event_type, entity_id, amount_usd, details);
+    conn.execute_batch("BEGIN IMMEDIATE")?;
 
-    conn.execute(
-        "INSERT INTO billing_audit (event_type, entity_id, amount_usd, details, prev_hash, hash)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-        params![event_type, entity_id, amount_usd, details, prev_hash, hash],
-    )?;
-    let id = conn.last_insert_rowid();
+    let result = (|| -> rusqlite::Result<AuditEntry> {
+        let prev_hash = get_last_hash(conn)?;
+        let hash = compute_hash(&prev_hash, event_type, entity_id, amount_usd, details);
 
-    Ok(AuditEntry {
-        id: Some(id),
-        event_type: event_type.to_string(),
-        entity_id: entity_id.to_string(),
-        amount_usd,
-        details: details.to_string(),
-        prev_hash,
-        hash,
-        created_at: chrono::Utc::now(),
-    })
+        conn.execute(
+            "INSERT INTO billing_audit (event_type, entity_id, amount_usd, details, prev_hash, hash)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![event_type, entity_id, amount_usd, details, prev_hash, hash],
+        )?;
+        let id = conn.last_insert_rowid();
+
+        Ok(AuditEntry {
+            id: Some(id),
+            event_type: event_type.to_string(),
+            entity_id: entity_id.to_string(),
+            amount_usd,
+            details: details.to_string(),
+            prev_hash,
+            hash,
+            created_at: chrono::Utc::now(),
+        })
+    })();
+
+    match &result {
+        Ok(_) => conn.execute_batch("COMMIT")?,
+        Err(_) => {
+            let _ = conn.execute_batch("ROLLBACK");
+        }
+    }
+    result
 }
 
 /// Verify the integrity of the audit chain.
@@ -58,8 +73,7 @@ pub fn verify_chain(conn: &Connection) -> rusqlite::Result<Result<usize, i64>> {
                 row.get(6)?,
             ))
         })?
-        .filter_map(|r| r.ok())
-        .collect();
+        .collect::<rusqlite::Result<Vec<_>>>()?;
 
     let mut expected_prev = String::new();
     for (id, event_type, entity_id, amount, details, prev_hash, hash) in &entries {
